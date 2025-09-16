@@ -231,13 +231,13 @@ class Trimmer {
         ' -ss $startPoint -i "$audioPath" -t ${endPoint - startPoint}';
 
     if (ffmpegCommand == null) {
-      command = '$trimLengthCommand -c:a copy ';
+      command = '$trimLengthCommand -y -c:a copy ';
 
       if (!applyAudioEncoding) {
         command += '-c:v copy ';
       }
     } else {
-      command = '$trimLengthCommand $ffmpegCommand ';
+      command = '$trimLengthCommand -y $ffmpegCommand ';
       outputFormatString = customAudioFormat;
     }
 
