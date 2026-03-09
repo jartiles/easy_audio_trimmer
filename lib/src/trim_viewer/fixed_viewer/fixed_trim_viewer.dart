@@ -325,8 +325,11 @@ class _FixedTrimViewerState extends State<FixedTrimViewer>
       // });
 
       audioPlayerController.setVolume(1.0);
-      _audioDuration =
-          (await audioPlayerController.getDuration())!.inMilliseconds;
+      final duration = await audioPlayerController.getDuration();
+      if (duration == null || duration.inMilliseconds <= 0) {
+        return;
+      }
+      _audioDuration = duration.inMilliseconds;
     }
   }
 
