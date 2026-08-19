@@ -15,6 +15,34 @@ import 'utils/storage_dir.dart';
 
 enum TrimmerEvent { initialized }
 
+/// Builds the FFmpeg command used to trim [audioPath] between [startPoint]
+/// and [endPoint].
+///
+/// When [ffmpegCommand] is null, the audio stream is re-encoded with
+/// `libmp3lame` rather than stream-copied. `-c:a copy` only cuts on codec
+/// frame boundaries, so for MP3 it silently snaps the trim point to the
+/// nearest frame (sometimes seconds away from the requested range).
+String buildTrimCommand({
+  required String audioPath,
+  required Duration startPoint,
+  required Duration endPoint,
+  bool applyAudioEncoding = false,
+  String? ffmpegCommand,
+}) {
+  final String trimLengthCommand =
+      ' -ss $startPoint -i "$audioPath" -t ${endPoint - startPoint}';
+
+  if (ffmpegCommand != null) {
+    return '$trimLengthCommand -y $ffmpegCommand ';
+  }
+
+  var command = '$trimLengthCommand -y -c:a libmp3lame -q:a 2 ';
+  if (!applyAudioEncoding) {
+    command += '-c:v copy ';
+  }
+  return command;
+}
+
 /// Helps in loading audio from file, saving trimmed audio to a file
 /// and gives audio playback controls. Some of the helpful methods
 /// are:
@@ -227,21 +255,19 @@ class Trimmer {
       outputFormatString = outputFormat.toString();
     }
 
-    String trimLengthCommand =
-        ' -ss $startPoint -i "$audioPath" -t ${endPoint - startPoint}';
-
-    if (ffmpegCommand == null) {
-      command = '$trimLengthCommand -y -c:a copy ';
-
-      if (!applyAudioEncoding) {
-        command += '-c:v copy ';
-      }
-    } else {
-      command = '$trimLengthCommand -y $ffmpegCommand ';
+    if (ffmpegCommand != null) {
       outputFormatString = customAudioFormat;
     }
 
     outputPath = '$path$audioFileName$outputFormatString';
+
+    command = buildTrimCommand(
+      audioPath: audioPath,
+      startPoint: startPoint,
+      endPoint: endPoint,
+      applyAudioEncoding: applyAudioEncoding,
+      ffmpegCommand: ffmpegCommand,
+    );
 
     command += '"$outputPath"';
 
